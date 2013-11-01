@@ -61,12 +61,12 @@ void client_tcp(struct iperf_test * test){
     //send string to server
 	unsigned int totalSent =0;
 	struct timeval start,stop;
-	double diffTime=0.0L;
+	uint64_t diffTime=0.0L;
 	for(int i=0;i<800;i++){
 		gettimeofday(&start,NULL);
 		ssize_t sentLen = send(sockfd,echoString,echoStringLen,0);
 		gettimeofday(&stop,NULL);
-		diffTime += (stop.tv_usec-start.tv_usec);
+		diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
 		if(sentLen<0){
 			perror("send() failed");
 			exit(-1);
@@ -77,10 +77,11 @@ void client_tcp(struct iperf_test * test){
 		totalSent+=sentLen;
 	}
 	gettimeofday(&stop,NULL);
-	printf("diffTime is %lf\n",diffTime);
+	printf("diffTime is %llu\n",diffTime);
 	double throughput = (totalSent/diffTime)*8000000;
 	printf("The acheived throughput is %lf %u\n",throughput,totalSent);
     close(sockfd);
+	free(echoString);
 }
 
 void server_tcp(struct iperf_test * test){
@@ -149,10 +150,15 @@ void server_tcp(struct iperf_test * test){
 			if(recvLen<0){
 				perror("recv() failed");
 				exit(-1);
+			}else if(recvLen==0){
+				close(clntSock);
+				break;
 			}
 		}
         printf("end of server program");
     }
     printf("End of program");
 }
-
+void destroy(struct iperf_test * test){
+	free(test->server_ip);
+}

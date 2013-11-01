@@ -23,5 +23,5 @@ void set_defaults(struct iperf_test * test);
 void parse_args(struct iperf_test *test,int argc,char **argv);
 void server_tcp(struct iperf_test *);
 void client_tcp(struct iperf_test *);
-
+void destroy(struct iperf_test *test);
 #endif

@@ -1,0 +1,30 @@
+CFLAGS += -g -std=c99 -03 -Wall -c -I../include
+LDFLAGS = 
+IND_SRC = iperf_api.c iperf_defaults.c main.c 
+IND_OBJ = $(IND_SRC:.c=.o)
+IND_OUT = $(IND_SRC:.c=)
+TARGET = iperf
+
+.PHONY: all clean test rmobj 
+
+
+all: $(TARGET) rmobj 
+
+$(TARGET): $(IND_OBJ)
+	$(CC) $(LDFLAGS) *.o -o $@
+
+iperf_api.o: iperf_api.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+iperf_defaults.o: iperf_defaults.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+main.o: main.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+rmobj:
+	rm *.o
+
+clean:
+	rm -f *.o
+	rm -f $(TARGET)

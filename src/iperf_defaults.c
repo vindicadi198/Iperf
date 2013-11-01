@@ -16,6 +16,8 @@ void parse_args(struct iperf_test *test,int argc,char **argv){
         switch (c){
 			case 'c':
 				test->mode='c';
+				test->server_ip =(char*)malloc(strlen(optarg)+1);
+				strcpy(test->server_ip,optarg);
 				test->execute=client_tcp;
 				break;
 			case 's':
