@@ -1,4 +1,4 @@
-.PHONY defaults
+.PHONY: defaults
 
 defaults: all
 

@@ -16,12 +16,16 @@ struct iperf_test{
 	char mode;
 	char *server_ip;
 	int server_port;
+	char protocol;
+	uint64_t bit_rate;
 	void (*execute)(struct iperf_test *);
 };
-
+void usage();
 void set_defaults(struct iperf_test * test);
 void parse_args(struct iperf_test *test,int argc,char **argv);
 void server_tcp(struct iperf_test *);
 void client_tcp(struct iperf_test *);
+void server_udp(struct iperf_test *);
+void client_udp(struct iperf_test *);
 void destroy(struct iperf_test *test);
 #endif

@@ -2,6 +2,18 @@
 #include<time.h>
 static const int MAXPENDING =5;
 #define BUFSIZE (128*1024)
+
+void usage(){
+	printf("IITH iperf options:\n");
+	printf("iperf [OPTIONS] \n");
+	printf("Options:\n");
+	printf("\t-c SERVERIP : run iperf in client and test with server at SERVERIP\n");
+	printf("\t-s : run iperf in server mode \n");
+	printf("\t-b : bit rate for UDP tests (implicitly UDP mode)\n");
+	printf("\t-p PORT : If server listen on port PORT, in client port to connect to server(Default:5001) \n");
+	printf("\t-u : Run iperf in UDP mode (Default bit rate:1 Mbps)\n");
+}
+
 void client_tcp(struct iperf_test * test){
 	char *servIP=test->server_ip;
 	char *echoString;
@@ -27,7 +39,7 @@ void client_tcp(struct iperf_test * test){
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
 
-	printf("buffer size is %d\n",bufsize);
+	printf("buffer size is %dKB\n",bufsize>>10);
 
     //set the server address
     struct sockaddr_in servAddr;
@@ -50,7 +62,7 @@ void client_tcp(struct iperf_test * test){
 		if(rv<0)
 			printf("setsockopt error %s\n",strerror(errno));
 
-		printf("buffer size is %d\n",bufsize);
+		printf("buffer size is %dKB\n",bufsize>>10);
 	srand(time(NULL));
 	int echoStringLen=(128*1024);
 	echoString = (char*)malloc(echoStringLen*sizeof(char));
@@ -79,7 +91,7 @@ void client_tcp(struct iperf_test * test){
 	gettimeofday(&stop,NULL);
 	printf("diffTime is %llu\n",diffTime);
 	double throughput = (totalSent/diffTime)*8000000;
-	printf("The acheived throughput is %lf %u\n",throughput,totalSent);
+	printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
     close(sockfd);
 	free(echoString);
 }
@@ -104,7 +116,7 @@ void server_tcp(struct iperf_test * test){
 	rv=getsockopt(servSock,SOL_SOCKET,SO_RCVBUF,(void*)&bufsize,&len);
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
-	printf("buffer size is %d\n",bufsize);
+	printf("buffer size is %dKB\n",bufsize>>10);
 
 
     struct sockaddr_in servAddr;

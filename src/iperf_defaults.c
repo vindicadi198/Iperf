@@ -8,11 +8,16 @@
 void set_defaults(struct iperf_test * test){
 	test->mode = DEFAULT_MODE;
 	test->server_port = SERVER_PORT;
+	test->protocol = 't';
 }
 
 void parse_args(struct iperf_test *test,int argc,char **argv){
+	if(argc==1){
+		usage();
+		exit(1);
+	}
 	char c;
-	while ((c = getopt (argc, argv, "c:sp:")) != -1){
+	while ((c = getopt (argc, argv, "c:sp:ub:")) != -1){
         switch (c){
 			case 'c':
 				test->mode='c';
@@ -27,8 +32,28 @@ void parse_args(struct iperf_test *test,int argc,char **argv){
 			case 'p':
 				test->server_port=atoi(optarg);
 				break;
+			case 'u':
+				test->protocol = 'u';
+				test->bit_rate = 1000000;
+				break;
+			case 'b':
+				test->protocol = 'u';
+				test->bit_rate = atoi(optarg);
+				break;
 			default:
-				 abort ();
+				 usage();
+				 exit(0);
+				 break;
+		}
+	}
+	if(test->protocol=='u'){
+		switch(test->mode){
+			case 'c':
+				test->execute=client_udp;
+				break;
+			case 's':
+				test->execute=server_udp;
+				break;
 		}
 	}
 }

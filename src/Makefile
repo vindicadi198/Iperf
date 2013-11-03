@@ -1,6 +1,6 @@
 CFLAGS += -g -std=c99 -03 -Wall -c -I../include
 LDFLAGS = 
-IND_SRC = iperf_api.c iperf_defaults.c main.c 
+IND_SRC = iperf_api.c iperf_defaults.c iperf_udp.c main.c 
 IND_OBJ = $(IND_SRC:.c=.o)
 IND_OUT = $(IND_SRC:.c=)
 TARGET = iperf
@@ -17,6 +17,9 @@ iperf_api.o: iperf_api.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 iperf_defaults.o: iperf_defaults.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+iperf_udp.o: iperf_udp.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 main.o: main.c
