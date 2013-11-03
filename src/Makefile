@@ -1,4 +1,4 @@
-CFLAGS += -g -std=c99 -03 -Wall -c -I../include
+CFLAGS += -g -std=c99 -O3 -Wall -c -I../include
 LDFLAGS = 
 IND_SRC = iperf_api.c iperf_defaults.c iperf_udp.c main.c 
 IND_OBJ = $(IND_SRC:.c=.o)
