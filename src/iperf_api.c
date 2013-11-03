@@ -1,5 +1,8 @@
 #include "iperf_api.h"
 #include<time.h>
+#ifdef __linux
+#include<linux/tcp.h>
+#endif
 static const int MAXPENDING =5;
 #define BUFSIZE (128*1024)
 
@@ -89,6 +92,9 @@ void client_tcp(struct iperf_test * test){
 		totalSent+=sentLen;
 	}
 	gettimeofday(&stop,NULL);
+	struct tcp_info tcpInfo;
+	getsockopt(sockfd, SOL_SOCKET, TCP_INFO, &tcpInfo, &len);
+	printf("tcpinfo:%d\n",tcpInfo.tcpi_rtt);
 	printf("diffTime is %llu\n",diffTime);
 	double throughput = (totalSent/diffTime)*8000000;
 	printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
