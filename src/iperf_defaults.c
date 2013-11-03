@@ -9,6 +9,7 @@ void set_defaults(struct iperf_test * test){
 	test->mode = DEFAULT_MODE;
 	test->server_port = SERVER_PORT;
 	test->protocol = 't';
+	test->socket_bufsize = 128*1024;
 }
 
 void parse_args(struct iperf_test *test,int argc,char **argv){

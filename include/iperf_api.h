@@ -18,6 +18,7 @@ struct iperf_test{
 	int server_port;
 	char protocol;
 	uint64_t bit_rate;
+	int socket_bufsize;
 	void (*execute)(struct iperf_test *);
 };
 void usage();

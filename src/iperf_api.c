@@ -25,7 +25,7 @@ void client_tcp(struct iperf_test * test){
 		perror("socket() failed");
 		exit(-1);
 	}
-	int bufsize = 128*1024,rv;
+	int bufsize = test->socket_bufsize,rv;
 	rv=setsockopt(sockfd,SOL_SOCKET,SO_SNDBUF,&bufsize,sizeof(bufsize));
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
@@ -64,7 +64,7 @@ void client_tcp(struct iperf_test * test){
 
 		printf("buffer size is %dKB\n",bufsize>>10);
 	srand(time(NULL));
-	int echoStringLen=(128*1024);
+	int echoStringLen=test->socket_bufsize;
 	echoString = (char*)malloc(echoStringLen*sizeof(char));
 	for(int i=0;i<echoStringLen;i++){
 		echoString[i]=rand()%256;
@@ -104,7 +104,7 @@ void server_tcp(struct iperf_test * test){
         perror("sockert() failed");
         exit(-1);
     }
-	int bufsize = 128*1024,rv;
+	int bufsize = test->socket_bufsize,rv;
 	rv=setsockopt(servSock,SOL_SOCKET,SO_SNDBUF,&bufsize,sizeof(bufsize));
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
@@ -156,9 +156,9 @@ void server_tcp(struct iperf_test * test){
 		
 		while(1){
 			//Receive data
-			char buffer[BUFSIZE];
-			memset(buffer,0,BUFSIZE);
-			ssize_t recvLen=recv(clntSock,buffer,BUFSIZE-1,0);
+			char buffer[bufsize];
+			memset(buffer,0,bufsize);
+			ssize_t recvLen=recv(clntSock,buffer,bufsize-1,0);
 			if(recvLen<0){
 				perror("recv() failed");
 				exit(-1);
@@ -170,6 +170,7 @@ void server_tcp(struct iperf_test * test){
         printf("end of server program");
     }
     printf("End of program");
+	close(servSock);
 }
 void destroy(struct iperf_test * test){
 	free(test->server_ip);
