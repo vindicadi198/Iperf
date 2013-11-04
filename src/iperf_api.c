@@ -1,5 +1,8 @@
 #include "iperf_api.h"
 #include<time.h>
+#ifdef __linux
+#include<linux/tcp.h>
+#endif
 static const int MAXPENDING =5;
 #define BUFSIZE (128*1024)
 
@@ -13,7 +16,31 @@ void usage(){
 	printf("\t-p PORT : If server listen on port PORT, in client port to connect to server(Default:5001) \n");
 	printf("\t-u : Run iperf in UDP mode (Default bit rate:1 Mbps)\n");
 }
-
+#ifdef __linux
+void output_tcpinfo(FILE *of,int sock,uint32_t seq){
+	if(of==NULL)
+		return;
+	struct tcp_info tcpInfo;
+	getsockopt(sockfd, SOL_SOCKET, TCP_INFO, &tcpInfo, &len);
+	fprintf(of,"%d %u %u %u %u %u %u %u %u %u %u %u %u\n",
+			,tcp_info.tcpi_state,
+			tcp_info.tcpi_last_data_sent,
+			tcp_info.tcpi_last_data_recv,
+			tcp_info.tcpi_snd_cwnd,
+			tcp_info.tcpi_snd_ssthresh,
+			tcp_info.tcpi_rcv_ssthresh,
+			tcp_info.tcpi_rtt,
+			tcp_info.tcpi_rttvar,
+			tcp_info.tcpi_unacked,
+			tcp_info.tcpi_sacked,
+			tcp_info.tcpi_lost,
+			tcp_info.tcpi_retrans,
+			tcp_info.tcpi_fackets
+		   );
+	fflush(of);
+}
+#endif
+	
 void client_tcp(struct iperf_test * test){
 	char *servIP=test->server_ip;
 	char *echoString;
@@ -74,10 +101,20 @@ void client_tcp(struct iperf_test * test){
 	unsigned int totalSent =0;
 	struct timeval start,stop;
 	uint64_t diffTime=0.0L;
+#ifdef __linux
+	FILE *of = fopen("log","w+");
+	if(of==NULL){
+		perror("Unable to open log file");
+		exit(-1);
+	}
+#endif
 	for(int i=0;i<800;i++){
 		gettimeofday(&start,NULL);
 		ssize_t sentLen = send(sockfd,echoString,echoStringLen,0);
 		gettimeofday(&stop,NULL);
+#ifdef __linux
+		output_tcpinfo(of,sockfd);
+#endif
 		diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
 		if(sentLen<0){
 			perror("send() failed");
@@ -92,6 +129,9 @@ void client_tcp(struct iperf_test * test){
 	printf("diffTime is %llu\n",diffTime);
 	double throughput = (totalSent/diffTime)*8000000;
 	printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
+#ifdef __linux
+	close(of);
+#endif
     close(sockfd);
 	free(echoString);
 }
