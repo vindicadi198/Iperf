@@ -17,25 +17,26 @@ void usage(){
 	printf("\t-u : Run iperf in UDP mode (Default bit rate:1 Mbps)\n");
 }
 #ifdef __linux
-void output_tcpinfo(FILE *of,int sock,uint32_t seq){
+void output_tcpinfo(FILE *of,int sock){
 	if(of==NULL)
 		return;
 	struct tcp_info tcpInfo;
-	getsockopt(sockfd, SOL_SOCKET, TCP_INFO, &tcpInfo, &len);
+	unsigned int len=-1;
+	getsockopt(sock,SOL_SOCKET, TCP_INFO, &tcpInfo, &len);
 	fprintf(of,"%d %u %u %u %u %u %u %u %u %u %u %u %u\n",
-			,tcp_info.tcpi_state,
-			tcp_info.tcpi_last_data_sent,
-			tcp_info.tcpi_last_data_recv,
-			tcp_info.tcpi_snd_cwnd,
-			tcp_info.tcpi_snd_ssthresh,
-			tcp_info.tcpi_rcv_ssthresh,
-			tcp_info.tcpi_rtt,
-			tcp_info.tcpi_rttvar,
-			tcp_info.tcpi_unacked,
-			tcp_info.tcpi_sacked,
-			tcp_info.tcpi_lost,
-			tcp_info.tcpi_retrans,
-			tcp_info.tcpi_fackets
+			tcpInfo.tcpi_state,
+			tcpInfo.tcpi_last_data_sent,
+			tcpInfo.tcpi_last_data_recv,
+			tcpInfo.tcpi_snd_cwnd,
+			tcpInfo.tcpi_snd_ssthresh,
+			tcpInfo.tcpi_rcv_ssthresh,
+			tcpInfo.tcpi_rtt,
+			tcpInfo.tcpi_rttvar,
+			tcpInfo.tcpi_unacked,
+			tcpInfo.tcpi_sacked,
+			tcpInfo.tcpi_lost,
+			tcpInfo.tcpi_retrans,
+			tcpInfo.tcpi_fackets
 		   );
 	fflush(of);
 }
@@ -145,7 +146,7 @@ void client_tcp(struct iperf_test * test){
 	double throughput = (totalSent/diffTime)*8000000;
 	printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
 #ifdef __linux
-	close(of);
+	fclose(of);
 #endif
     close(sockfd);
 	free(echoString);
@@ -227,6 +228,7 @@ void server_tcp(struct iperf_test * test){
 				perror("recv() failed");
 				exit(-1);
 			}else if(recvLen==0){
+				printf("Iperf stop testing\n");
 				close(clntSock);
 				break;
 			}else if(recvLen==sizeof(int)){
