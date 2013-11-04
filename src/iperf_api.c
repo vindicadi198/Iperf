@@ -89,7 +89,14 @@ void client_tcp(struct iperf_test * test){
 		if(rv<0)
 			printf("setsockopt error %s\n",strerror(errno));
 
-		printf("buffer size is %dKB\n",bufsize>>10);
+	printf("buffer size is %dKB\n",bufsize>>10);
+	int send_handshake = IPERF_TEST_START;
+	if(send(sockfd,&send_handshake,sizeof(int),0)!=sizeof(int)){
+		perror("Error starting test handshake");
+		close(sockfd);
+		exit(1);
+	}
+	
 	srand(time(NULL));
 	int echoStringLen=test->socket_bufsize;
 	echoString = (char*)malloc(echoStringLen*sizeof(char));
@@ -124,6 +131,14 @@ void client_tcp(struct iperf_test * test){
 			//exit(-1);
 		}
 		totalSent+=sentLen;
+	}
+	send_handshake = IPERF_TEST_STOP;
+	if(send(sockfd,&send_handshake,sizeof(int),0)!=sizeof(int)){
+		perror("Error starting test handshake");
+		close(sockfd);
+		exit(1);
+	}else{
+		printf("Stopping test client side\n");
 	}
 	gettimeofday(&stop,NULL);
 	printf("diffTime is %llu\n",diffTime);
@@ -186,7 +201,16 @@ void server_tcp(struct iperf_test * test){
             perror("accept() failed");
             exit(-1);
         }
-        
+		int recv_handshake;
+       	if(recv(clntSock,&recv_handshake,sizeof(int),0)!=sizeof(int)){
+			perror("Error receiving handshake from client");
+			close(clntSock);
+			continue;
+		}else if(recv_handshake!=IPERF_TEST_START){
+			perror("Wrong Handshake message\n");
+			close(clntSock);
+			continue;
+		}
         char clntIpAddr[INET_ADDRSTRLEN];
         if(inet_ntop(AF_INET,&clntAddr.sin_addr.s_addr,clntIpAddr,sizeof(clntIpAddr))!=NULL){
             printf("Handling client %s %d\n",clntIpAddr,ntohs(clntAddr.sin_port));
@@ -205,8 +229,15 @@ void server_tcp(struct iperf_test * test){
 			}else if(recvLen==0){
 				close(clntSock);
 				break;
+			}else if(recvLen==sizeof(int)){
+				int *p=(int*)buffer;
+				if((*p)==IPERF_TEST_STOP){
+					printf("Iperf test stop received\nStopping Test!!\n");
+					break;
+				}
 			}
 		}
+		close(clntSock);
         printf("end of server program");
     }
     printf("End of program");

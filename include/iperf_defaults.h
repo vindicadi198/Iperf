@@ -3,5 +3,7 @@
 
 #define SERVER_PORT 5001
 #define DEFAULT_MODE 's'
+#define IPERF_TEST_START 2147483647
+#define IPERF_TEST_STOP -2147483647
 
 #endif
