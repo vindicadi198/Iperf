@@ -255,7 +255,7 @@ void server_udp(struct iperf_test *test){
 			exit(-1);
 		
 		}
-		unsigned int number_of_packets=0;
+		unsigned int number_of_packets=0,number_of_received=0;
 		int tcp_recvLen=recv(clntSock,&number_of_packets,sizeof(int),0);
 		if(tcp_recvLen<0){
 			fprintf(stderr,"recv() error\n");
@@ -272,10 +272,12 @@ void server_udp(struct iperf_test *test){
 				perror("recv() failed");
 				exit(-1);
 			}
+			number_of_received++;
 			struct packet *recv_packet=(struct packet*)buffer;
 			printf("Got packet sequence number %d\n",recv_packet->seq_no);
 			if(recv_packet->seq_no==(number_of_packets-1)){
 				printf("Received last sequence number\n");
+				printf("Loss ratio is %f\n",(float)(1.0-number_of_received/number_of_packets));
 				break;
 			}
 		}
