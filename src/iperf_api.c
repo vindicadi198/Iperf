@@ -85,6 +85,15 @@ void client_tcp(struct iperf_test * test){
         perror("connect failed");
         exit(-1);
     }
+#ifdef __linux
+	FILE *of = fopen("log","w");
+	if(of==NULL){
+		perror("Unable to open log file");
+		exit(-1);
+	}
+	fprintf(of,"State LastDataSent LastDataRecv SNDCWND SNDSTHRESH RCVSTHRESH RTT RTTVAR UNACK SACKED LOST RETRANS FACKS\n");
+#endif
+
 	bufsize = -1;
 	rv=getsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,(void*)&bufsize,&len);
 		if(rv<0)
@@ -109,14 +118,6 @@ void client_tcp(struct iperf_test * test){
 	unsigned int totalSent =0;
 	struct timeval start,stop;
 	uint64_t diffTime=0.0L;
-#ifdef __linux
-	FILE *of = fopen("log","w");
-	if(of==NULL){
-		perror("Unable to open log file");
-		exit(-1);
-	}
-	fprintf(of,"State LastDataSent LastDataRecv SNDCWND SNDSTHRESH RCVSTHRESH RTT RTTVAR UNACK SACKED LOST RETRANS FACKS\n");
-#endif
 	for(int i=0;i<800;i++){
 		gettimeofday(&start,NULL);
 		ssize_t sentLen = send(sockfd,echoString,echoStringLen,0);
@@ -221,22 +222,31 @@ void server_tcp(struct iperf_test * test){
         }else{
             puts("unable to get client IP address");
         }
-		
+		struct timeval start,stop;
+		uint64_t diffTime = 0L,totalRecv=0;
 		while(1){
 			//Receive data
 			char buffer[bufsize];
 			memset(buffer,0,bufsize);
+			gettimeofday(&start,NULL);
 			ssize_t recvLen=recv(clntSock,buffer,bufsize-1,0);
+			gettimeofday(&stop,NULL);
+			diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
+			totalRecv +=recvLen;
 			if(recvLen<0){
 				perror("recv() failed");
 				exit(-1);
 			}else if(recvLen==0){
+				double throughput = (totalRecv/diffTime)*8000000;
+				printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
 				printf("Iperf stop testing\n");
 				close(clntSock);
 				break;
 			}else if(recvLen==sizeof(int)){
 				int *p=(int*)buffer;
 				if((*p)==IPERF_TEST_STOP){
+					double throughput = (totalRecv/diffTime)*8000000;
+					printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
 					printf("Iperf test stop received\nStopping Test!!\n");
 					break;
 				}
