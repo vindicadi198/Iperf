@@ -133,8 +133,8 @@ void client_tcp(struct iperf_test * test){
 			//exit(-1);
 		}
 		totalSent+=sentLen;
-		if(diffTime>=(10000000))
-			break;
+		//if(diffTime>=(10000000))
+		//	break;
 	}
 	send_handshake = IPERF_TEST_STOP;
 	if(send(sockfd,&send_handshake,sizeof(int),0)!=sizeof(int)){

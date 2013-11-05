@@ -277,7 +277,8 @@ void server_udp(struct iperf_test *test){
 			printf("Got packet sequence number %d\n",recv_packet->seq_no);
 			if(recv_packet->seq_no==(number_of_packets-1)){
 				printf("Received last sequence number\n");
-				printf("Loss ratio is %f\n",(float)(1.0-number_of_received/number_of_packets));
+				double recv_ratio = ((float)number_of_received)/ number_of_packets;
+				printf("Loss ratio is %f\n",(float)(1.0-recv_ratio));
 				break;
 			}
 		}
