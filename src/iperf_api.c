@@ -92,6 +92,7 @@ void client_tcp(struct iperf_test * test){
 		exit(-1);
 	}
 	fprintf(of,"State LastDataSent LastDataRecv SNDCWND SNDSTHRESH RCVSTHRESH RTT RTTVAR UNACK SACKED LOST RETRANS FACKS\n");
+	output_tcpinfo(of,sockfd);
 #endif
 
 	bufsize = -1;
