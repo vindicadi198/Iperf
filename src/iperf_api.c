@@ -110,11 +110,12 @@ void client_tcp(struct iperf_test * test){
 	struct timeval start,stop;
 	uint64_t diffTime=0.0L;
 #ifdef __linux
-	FILE *of = fopen("log","w+");
+	FILE *of = fopen("log","w");
 	if(of==NULL){
 		perror("Unable to open log file");
 		exit(-1);
 	}
+	fprintf(of,"State LastDataSent LastDataRecv SNDCWND SNDSTHRESH RCVSTHRESH RTT RTTVAR UNACK SACKED LOST RETRANS FACKS\n");
 #endif
 	for(int i=0;i<800;i++){
 		gettimeofday(&start,NULL);
@@ -132,6 +133,8 @@ void client_tcp(struct iperf_test * test){
 			//exit(-1);
 		}
 		totalSent+=sentLen;
+		if(diffTime>=(10000000))
+			break;
 	}
 	send_handshake = IPERF_TEST_STOP;
 	if(send(sockfd,&send_handshake,sizeof(int),0)!=sizeof(int)){
