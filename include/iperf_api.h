@@ -22,6 +22,7 @@ struct iperf_test{
 	char protocol;
 	uint64_t bit_rate;
 	int socket_bufsize;
+	double loss_threshold_percent;
 	void (*execute)(struct iperf_test *);
 };
 void usage();
@@ -31,5 +32,7 @@ void server_tcp(struct iperf_test *);
 void client_tcp(struct iperf_test *);
 void server_udp(struct iperf_test *);
 void client_udp(struct iperf_test *);
+void server_udp_auto(struct iperf_test *);
+void client_udp_auto(struct iperf_test *);
 void destroy(struct iperf_test *test);
 #endif

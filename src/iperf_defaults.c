@@ -18,8 +18,12 @@ void parse_args(struct iperf_test *test,int argc,char **argv){
 		exit(1);
 	}
 	char c;
-	while ((c = getopt (argc, argv, "c:sp:ub:")) != -1){
+	while ((c = getopt (argc, argv, "a:c:sp:ub:")) != -1){
         switch (c){
+			case 'a':
+				test->protocol='a';
+				sscanf(optarg,"%lf",&(test->loss_threshold_percent));
+				break;
 			case 'c':
 				test->mode='c';
 				test->server_ip =(char*)malloc(strlen(optarg)+1);
@@ -54,6 +58,15 @@ void parse_args(struct iperf_test *test,int argc,char **argv){
 				break;
 			case 's':
 				test->execute=server_udp;
+				break;
+		}
+	}else if(test->protocol=='a'){
+		switch(test->mode){
+			case 'c':
+				test->execute=client_udp_auto;
+				break;
+			case 's':
+				test->execute=server_udp_auto;
 				break;
 		}
 	}

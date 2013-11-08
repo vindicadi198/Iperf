@@ -1,6 +1,6 @@
 CFLAGS += -g -std=c99 -O3 -Wall -c -I../include
-LDFLAGS = 
-IND_SRC = iperf_api.c iperf_defaults.c iperf_udp.c main.c 
+LDFLAGS = -lm 
+IND_SRC = iperf_api.c iperf_defaults.c iperf_udp.c iperf_auto_udp.c main.c 
 IND_OBJ = $(IND_SRC:.c=.o)
 IND_OUT = $(IND_SRC:.c=)
 TARGET = iperf
@@ -8,7 +8,7 @@ TARGET = iperf
 .PHONY: all clean test rmobj 
 
 
-all: $(TARGET) rmobj 
+all: $(TARGET)  
 
 $(TARGET): $(IND_OBJ)
 	$(CC) $(LDFLAGS) *.o -o $@
@@ -20,6 +20,9 @@ iperf_defaults.o: iperf_defaults.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 iperf_udp.o: iperf_udp.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+iperf_auto_udp.o: iperf_auto_udp.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 main.o: main.c

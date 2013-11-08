@@ -4,7 +4,7 @@ struct packet{
 	char data[128*1024];
 }__attribute__((packed));
 
-int connect_server(struct iperf_test *test){
+static int connect_server(struct iperf_test *test){
     
 	char *servIP=test->server_ip;
 	in_port_t servPort=test->server_port;
@@ -48,7 +48,7 @@ int connect_server(struct iperf_test *test){
     }
 	return sockfd;
 }
-int start_tcp_server(struct iperf_test *test){
+static int start_tcp_server(struct iperf_test *test){
 	in_port_t servPort = test->server_port; //local port 
     
     int servSock;
