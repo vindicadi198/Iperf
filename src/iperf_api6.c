@@ -48,7 +48,7 @@ void output_tcpinfo(FILE *of,int sock){
 void client_tcp(struct iperf_test * test){
 	char *servIP=test->server_ip;
 	char *echoString;
-	char serverPortStr[50];
+	char serverPortStr[10];
     
 	in_port_t servPort=test->server_port;
     	sprintf(serverPortStr,"%d",test->server_port);
@@ -75,14 +75,16 @@ void client_tcp(struct iperf_test * test){
 
     //set the server address
     struct addrinfo servAddrInf,*res=NULL;
-    servAddrInf.ai_family=AF_INET6;
+    servAddrInf.ai_family=PF_UNSPEC;
+    servAddrInf.ai_socktype=SOCK_STREAM;
     servAddrInf.ai_flags|=AI_NUMERICHOST;
     struct in6_addr serverAddr;
     memset(&serverAddr,0,sizeof(serverAddr));
     //servAddr.sin_family = AF_INET6;
     int err=inet_pton(AF_INET6,servIP,&serverAddr);
     if(err<=0){
-        perror("inet_pton() failed");
+        perror("inet_pton() failed ");
+	printf("server ip is %s\n",servIP);
         exit(-1);
     }
     //servAddr.sin_port=htons(servPort); //h-host,n-network order s-short
@@ -94,7 +96,7 @@ void client_tcp(struct iperf_test * test){
          /* If the connect() fails to the first one, subsequent addresses */
          /* (if any) in the list could be tried if desired.               */
          /*****************************************************************/
-         perror("connect() failed");
+         perror("get addrinfo() failed");
          exit(-1);
       }
     //connect to server
