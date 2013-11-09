@@ -1,6 +1,7 @@
 #include "iperf_api.h"
 #include<time.h>
 #ifdef __linux
+#define __USE_POSIX
 #include<linux/tcp.h>
 #include<sys/types.h>
 #include<netdb.h>
@@ -47,9 +48,10 @@ void output_tcpinfo(FILE *of,int sock){
 void client_tcp(struct iperf_test * test){
 	char *servIP=test->server_ip;
 	char *echoString;
+	char serverPortStr[50];
     
 	in_port_t servPort=test->server_port;
-    
+    	sprintf(serverPortStr,"%d",test->server_port);
 	int sockfd=socket(AF_INET6,SOCK_STREAM,IPPROTO_TCP);
 	if(sockfd <0){
 		perror("socket() failed");
@@ -84,7 +86,17 @@ void client_tcp(struct iperf_test * test){
         exit(-1);
     }
     //servAddr.sin_port=htons(servPort); //h-host,n-network order s-short
-    int rc=getaddrinfo(servIP,servPort,&servAddrInf,&res);
+    int rc=getaddrinfo(servIP,serverPortStr,&servAddrInf,&res);
+	if (rc < 0)
+      {
+         /*****************************************************************/
+         /* Note: the res is a linked list of addresses found for server. */
+         /* If the connect() fails to the first one, subsequent addresses */
+         /* (if any) in the list could be tried if desired.               */
+         /*****************************************************************/
+         perror("connect() failed");
+         exit(-1);
+      }
     //connect to server
     if(connect(sockfd,res->ai_addr, res->ai_addrlen)){
         perror("connect failed");
@@ -166,7 +178,7 @@ void server_tcp(struct iperf_test * test){
     in_port_t servPort = test->server_port; //local port 
     
     int servSock;
-    if((servSock = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP))<0){
+    if((servSock = socket(AF_INET6,SOCK_STREAM,IPPROTO_TCP))<0){
         perror("sockert() failed");
         exit(-1);
     }
@@ -185,11 +197,11 @@ void server_tcp(struct iperf_test * test){
 	printf("buffer size is %dKB\n",bufsize>>10);
 
 
-    struct sockaddr_in servAddr;
+    struct sockaddr_in6 servAddr;
     memset(&servAddr,0,sizeof(servAddr));
-    servAddr.sin_family=AF_INET;
-    servAddr.sin_addr.s_addr=htonl(INADDR_ANY);
-    servAddr.sin_port=htons(servPort);
+    servAddr.sin6_family=AF_INET6;
+    servAddr.sin6_addr=in6addr_any;
+    servAddr.sin6_port=htons(servPort);
     
     //Bind to local address
     if(bind(servSock,(struct sockaddr*)&servAddr,sizeof(servAddr))<0){
@@ -204,7 +216,7 @@ void server_tcp(struct iperf_test * test){
     }
     
     for(;;){
-        struct sockaddr_in clntAddr;
+        struct sockaddr_in6 clntAddr;
         socklen_t clntAddrLen = sizeof(clntAddr);
         //Wait for a client to connect
         int clntSock = accept(servSock,(struct sockaddr *)&clntAddr,&clntAddrLen);
@@ -222,9 +234,9 @@ void server_tcp(struct iperf_test * test){
 			close(clntSock);
 			continue;
 		}
-        char clntIpAddr[INET_ADDRSTRLEN];
-        if(inet_ntop(AF_INET,&clntAddr.sin_addr.s_addr,clntIpAddr,sizeof(clntIpAddr))!=NULL){
-            printf("Handling client %s %d\n",clntIpAddr,ntohs(clntAddr.sin_port));
+        char clntIpAddr[INET6_ADDRSTRLEN];
+        if(inet_ntop(AF_INET6,&clntAddr.sin6_addr,clntIpAddr,sizeof(clntIpAddr))!=NULL){
+            printf("Handling client %s %d\n",clntIpAddr,ntohs(clntAddr.sin6_port));
         }else{
             puts("unable to get client IP address");
         }
