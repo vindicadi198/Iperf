@@ -14,6 +14,9 @@
 #include<netinet/in.h>
 #include<arpa/inet.h>
 #include<errno.h>
+//#include<netdb.h>
+//#include<resolv.h>
+#include<sys/select.h>
 #include "iperf_defaults.h"
 struct iperf_test{
 	char mode;
