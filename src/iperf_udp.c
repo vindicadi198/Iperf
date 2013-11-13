@@ -190,7 +190,7 @@ void client_udp(struct iperf_test *test){
 	diffTime = ((global_stop.tv_sec-global_start.tv_sec)*1000000)+(global_stop.tv_usec-global_start.tv_usec);
     
 	//printf("diffTime is %lf\n",diffTime);
-	double throughput = (totalSent/diffTime)*8000000;
+	double throughput = ((double)totalSent/diffTime)*8000000;
 	//printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
 	printThroughput(throughput);
     close(sockfd);

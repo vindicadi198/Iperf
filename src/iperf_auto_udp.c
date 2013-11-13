@@ -213,7 +213,7 @@ void client_udp_auto(struct iperf_test *test){
 		fprintf(udp_log,"%lf\n",throughput);
 	}while((loss_rate*100)<test->loss_threshold_percent|| someLoss==0);
 	//printf("diffTime is %lf\n",diffTime);
-	double throughput = (totalSent/diffTime)*8000000;
+	double throughput = ((double)totalSent/diffTime)*8000000;
 	//printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
     printThroughput(throughput);
 	printf("Loss rate at server is %lf\n",loss_rate);

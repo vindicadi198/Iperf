@@ -16,6 +16,8 @@ void printThroughput(double throughput){
 	}else if(throughput >= 1000000000.0L){
 		throughput = throughput/ 1000000000.0L;
 		printf("Achieved throughput is %lf Gbps\n",throughput);
+	}else{
+		printf("Achieved throughput is %lf bps\n",throughput);
 	}
 }
 
@@ -161,7 +163,7 @@ void client_tcp(struct iperf_test * test){
 	}
 	gettimeofday(&stop,NULL);
 	//printf("diffTime is %llu\n",diffTime);
-	double throughput = (totalSent/diffTime)*8000000;
+	double throughput = ((double)totalSent/diffTime)*8000000;
 	//printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
 	printThroughput(throughput);
 #ifdef __linux
@@ -261,7 +263,7 @@ void server_tcp(struct iperf_test * test){
 			}else if(recvLen==sizeof(int)){
 				int *p=(int*)buffer;
 				if((*p)==IPERF_TEST_STOP){
-					double throughput = (totalRecv/diffTime)*8000000;
+					double throughput = ((double)totalRecv/diffTime)*8000000;
 					//printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
 					printThroughput(throughput);
 					printf("Iperf test stop received\nStopping Test!!\n");
