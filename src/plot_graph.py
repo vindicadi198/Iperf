@@ -1,43 +1,111 @@
 import sys
 import matplotlib.pyplot as plt
 
-if len(sys.argv)<2:
-	print 'command requires argument'
-	exit()
+def throughput():
+	y=[]
+	readfile = open('throughput.txt','r')
 
-opt=sys.argv[1]
-opt = opt[1:]
-opt=int(opt)
-
-if opt > 12 or opt < 0 :
-	print 'give valid options in range [0,12]'
-	exit()
+	for line in readfile:
+		y.append(int(line))
 	
-x=[]
-y=[]
-a=[]
-
-i=-1
-readfile = open('rttgraph.txt','r')
-
-for line in readfile:
-	x.append(int(line))
+	plt.plot(y)	
+	plt.ylabel('Throughput')
+	plt.show()
 	
-x=x[2:]
+def tcp_log():
+	print '1) State'
+	print '2) LastDataSent'
+	print '3) LastDataRecv'
+	print '4) SNDCWND'
+	print '5) SNDSTHRESH'
+	print '6) RCVSTHRESH'
+	print '7) RTT'
+	print '8) RTTVAR'
+	print '9) UNACK'
+	print '10) SACKED'
+	print '11) LOST'
+	print '12) RETRANS'
+	print '13) FACKS'
+	j=raw_input('>')
+	j=int(j)
+	x=[]
+	y=[]
+	a=[]
+
+	i=-1
+	readfile = open('rttgraph.txt','r')
+
+	for line in readfile:
+		x.append(int(line))
 	
-readfile.close()
+	x=x[2:]
 
-logfile = open('log','r')
+	readfile.close()
+	
+	logfile = open('log','r')
+	
+	for line in logfile:
+		i = i+1
+		if i!=0 and i!=1 and i!=2 and i!=3 :
+			a =line.split(' ')
+			y.append(int(a[j-1]))
+			
+	plt.plot(x,y)
+	if j==1 :
+		plt.title('STATE vs TIME')
+		plt.xlabel('state')
+	if j==2 :
+		plt.title('LastDataSent vs TIME')
+		plt.xlabel('LastDataSent')
+	if j==3 :
+		plt.title('LastDataRecv vs TIME')
+		plt.xlabel('LastDataRecv')		
+	if j==4 :
+		plt.title('SNDCWND vs TIME')
+		plt.xlabel('SNDCWND')
+	if j==5 :
+		plt.title('SNDSTHRESH vs TIME')
+		plt.xlabel('SNDSTHRESH')
+	if j==6 :
+		plt.title('RCVSTHRESH vs TIME')
+		plt.xlabel('RCVSTHRESH')
+	if j==7 :
+		plt.title('RTT vs TIME')
+		plt.xlabel('RTT')
+	if j==8 :
+		plt.title('RTTVAR vs TIME')
+		plt.xlabel('rttvar')
+	if j==9 :
+		plt.title('UNACK vs TIME')
+		plt.xlabel('UNACK')
+	if j==10 :
+		plt.title('SACKED vs TIME')
+		plt.xlabel('SACKED')
+	if j==11 :
+		plt.title('LOST vs TIME')
+		plt.xlabel('LOST')
+	if j==12 :
+		plt.title('RETRANS vs TIME')
+		plt.xlabel('RETRANS')
+	if j==13 :
+		plt.title('FACKS vs TIME')
+		plt.xlabel('FACKS')				
+		
+				
+	plt.xlabel('TIME')
+	plt.show()		
 
-for line in logfile:
-	i = i+1
-	if i!=0 and i!=1 and i!=2 and i!=3 :
-		a =line.split(' ')
-		y.append(int(a[opt]))
 
-plt.plot(x,y)
-plt.title('RTT vs TIME')
-plt.xlabel('rtt')
-plt.xlabel('time')
 
-plt.show()
+
+def main():
+	print '1) throughput'
+	print '2) tcp log'
+	k=raw_input('>')
+	if k==1:
+		throughput()
+	else:
+		tcp_log()
+
+if __name__ == '__main__':
+	main()
