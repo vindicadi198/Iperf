@@ -2,10 +2,16 @@
 #include<time.h>
 #ifdef __linux
 #include<linux/tcp.h>
+#include <pthread.h>
 #endif
 static const int MAXPENDING =5;
 #define BUFSIZE (128*1024)
-
+typedef struct argmnt 
+{
+	int a;
+	int b;
+	struct sockaddr_in cl_add;
+} argu_thread ;
 void usage(){
 	printf("IITH iperf options:\n");
 	printf("iperf [OPTIONS] \n");
@@ -16,6 +22,7 @@ void usage(){
 	printf("\t-p PORT : If server listen on port PORT, in client port to connect to server(Default:5001) \n");
 	printf("\t-u : Run iperf in UDP mode (Default bit rate:1 Mbps)\n");
 }
+void* connection_handler(void*);
 #ifdef __linux
 void output_tcpinfo(FILE *of,int sock){
 	if(of==NULL)
@@ -146,6 +153,11 @@ void client_tcp(struct iperf_test * test){
 	}else{
 		printf("Stopping test client side\n");
 	}
+	double i = 0;
+	while(i<30000000000)
+	{
+	i++;
+	}
 	gettimeofday(&stop,NULL);
 	printf("diffTime is %llu\n",diffTime);
 	double throughput = (totalSent/diffTime)*8000000;
@@ -157,15 +169,70 @@ void client_tcp(struct iperf_test * test){
 	free(echoString);
 }
 
+void* connection_handler(void* arg){
+argu_thread input = *((argu_thread*)(arg));
+int bufsize = input.a;
+int clntSock = input.b;
+struct sockaddr_in clntAddr = input.cl_add;
+
+int recv_handshake;
+       	if(recv(clntSock,&recv_handshake,sizeof(int),0)!=sizeof(int)){
+			perror("Error receiving handshake from client");
+			close(clntSock);
+			//continue;
+		}else if(recv_handshake!=IPERF_TEST_START){
+			perror("Wrong Handshake message\n");
+			close(clntSock);
+			//continue;
+		}
+        char clntIpAddr[INET_ADDRSTRLEN];
+        if(inet_ntop(AF_INET,&clntAddr.sin_addr.s_addr,clntIpAddr,sizeof(clntIpAddr))!=NULL){
+            printf("Handling client %s %d\n",clntIpAddr,ntohs(clntAddr.sin_port));
+        }else{
+            puts("unable to get client IP address");
+        }
+		struct timeval start,stop;
+		uint64_t diffTime = 0L,totalRecv=0;
+		while(1){
+			//Receive data
+			char buffer[bufsize];
+			memset(buffer,0,bufsize);
+			gettimeofday(&start,NULL);
+			ssize_t recvLen=recv(clntSock,buffer,bufsize-1,0);
+			gettimeofday(&stop,NULL);
+			diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
+			totalRecv +=recvLen;
+			if(recvLen<0){
+				perror("recv() failed");
+				exit(-1);
+			}else if(recvLen==0){
+				double throughput = (totalRecv/diffTime)*8000000;
+				printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
+				printf("Iperf stop testing\n");
+				close(clntSock);
+				break;
+			}else if(recvLen==sizeof(int)){
+				int *p=(int*)buffer;
+				if((*p)==IPERF_TEST_STOP){
+					double throughput = (totalRecv/diffTime)*8000000;
+					printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
+					printf("Iperf test stop received\nStopping Test!!\n");
+					break;
+				}
+			}
+		}  
+		close(clntSock);
+        printf("end of server program");
+}
 void server_tcp(struct iperf_test * test){
-    in_port_t servPort = test->server_port; //local port 
+    in_port_t servPort = test->server_port; //local port 1
     
-    int servSock;
+    int servSock; // 2
     if((servSock = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP))<0){
         perror("sockert() failed");
         exit(-1);
     }
-	int bufsize = test->socket_bufsize,rv;
+	int bufsize = test->socket_bufsize,rv;  //3
 	rv=setsockopt(servSock,SOL_SOCKET,SO_SNDBUF,&bufsize,sizeof(bufsize));
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
@@ -180,7 +247,7 @@ void server_tcp(struct iperf_test * test){
 	printf("buffer size is %dKB\n",bufsize>>10);
 
 
-    struct sockaddr_in servAddr;
+    struct sockaddr_in servAddr;  //4
     memset(&servAddr,0,sizeof(servAddr));
     servAddr.sin_family=AF_INET;
     servAddr.sin_addr.s_addr=htonl(INADDR_ANY);
@@ -207,7 +274,13 @@ void server_tcp(struct iperf_test * test){
             perror("accept() failed");
             exit(-1);
         }
-		int recv_handshake;
+		pthread_t sniffer_thread;
+		argu_thread p_arg;
+		p_arg.a=bufsize;
+		p_arg.b=clntSock;
+		p_arg.cl_add= clntAddr;
+		pthread_create( &sniffer_thread , NULL ,  connection_handler , (void*) &p_arg);
+		/*int recv_handshake;
        	if(recv(clntSock,&recv_handshake,sizeof(int),0)!=sizeof(int)){
 			perror("Error receiving handshake from client");
 			close(clntSock);
@@ -252,9 +325,10 @@ void server_tcp(struct iperf_test * test){
 					break;
 				}
 			}
-		}
+		}  
 		close(clntSock);
-        printf("end of server program");
+        printf("end of server program");  */
+		pthread_join( sniffer_thread , NULL);
     }
     printf("End of program");
 	close(servSock);
@@ -262,3 +336,5 @@ void server_tcp(struct iperf_test * test){
 void destroy(struct iperf_test * test){
 	free(test->server_ip);
 }
+
+
