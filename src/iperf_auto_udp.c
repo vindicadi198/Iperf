@@ -152,11 +152,13 @@ void client_udp_auto(struct iperf_test *test){
 	unsigned int totalSent =0;
 	struct timeval global_start,global_stop,start,stop;
 	double diffTime=0.0L;
-	int rate = 10000,d=(packet_len)*8;
+	uint64_t rate = 10000,d=(packet_len)*8;
 	char someLoss = 0;
+	FILE *udp_log=fopen("udp","w");
 	do{
    	
-		int no_sends = ((int) rate/d)+1;
+		unsigned int  no_sends = (rate/d)+1;
+		printf("No sends is %u\n",no_sends);
 		double delay = (double)d/rate;
 		diffTime=0.0L;totalSent=0;
 		send_packet.seq_no=0;	
@@ -167,7 +169,7 @@ void client_udp_auto(struct iperf_test *test){
 			perror("send() failed to send full info\n");
 		//close(tcp_sock);
 		gettimeofday(&global_start,NULL);
-		for(int i=0;i<no_sends;i++){
+		for(unsigned int i=0;i<no_sends;i++){
 			gettimeofday(&start,NULL);
 			ssize_t sentLen = sendto(sockfd,&send_packet,packet_len,0,(struct sockaddr *)&servAddr,sizeof(struct sockaddr));
 			gettimeofday(&stop,NULL);
@@ -198,20 +200,24 @@ void client_udp_auto(struct iperf_test *test){
 		if(fabs((loss_rate-0))> 0.0001)
 			someLoss=1;
 		
-		if(loss_rate>=prev_loss_rate&&someLoss)
+		if(loss_rate>=prev_loss_rate&&someLoss&&(loss_rate*100)>test->loss_threshold_percent)
 			rate = rate/4;
 		else
 			rate=rate*2;
 		prev_loss_rate=loss_rate;
-		printf("diffTime is %lf\n",diffTime);
 		double throughput = (totalSent/diffTime)*8000000;
-		printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
-		
-	}while((loss_rate*100)>test->loss_threshold_percent|| someLoss==0);
-	printf("diffTime is %lf\n",diffTime);
+		if(throughput<1000000000&&someLoss==0)
+			rate=rate*2;
+		printThroughput(throughput);
+		printf("Loss ratio is %lf\n",loss_rate);
+		fprintf(udp_log,"%lf\n",throughput);
+	}while((loss_rate*100)<test->loss_threshold_percent|| someLoss==0);
+	//printf("diffTime is %lf\n",diffTime);
 	double throughput = (totalSent/diffTime)*8000000;
-	printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
-    printf("Loss rate at server is %lf\n",loss_rate);
+	//printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
+    printThroughput(throughput);
+	printf("Loss rate at server is %lf\n",loss_rate);
+	fclose(udp_log);
 	close(sockfd);
 	close(tcp_sock);
 
@@ -280,7 +286,7 @@ void server_udp_auto(struct iperf_test *test){
 				fprintf(stderr,"recv() error\n");
 				exit(1);
 			}
-			printf("Number of packets expected = %d\n",number_of_packets);
+			printf("Number of packets expected = %u\n",number_of_packets);
 			while(1){
 				bufsize=1024;
 				char buffer[bufsize];
@@ -292,7 +298,7 @@ void server_udp_auto(struct iperf_test *test){
 				}
 				number_of_received++;
 				struct packet *recv_packet=(struct packet*)buffer;
-				printf("Got packet sequence number %d\n",recv_packet->seq_no);
+				//printf("Got packet sequence number %d\n",recv_packet->seq_no);
 				if(recv_packet->seq_no==(number_of_packets-1)){
 					printf("Received last sequence number\n");
 					loss_ratio = 1.0-((double)number_of_received)/ number_of_packets;
@@ -306,7 +312,7 @@ void server_udp_auto(struct iperf_test *test){
 			if(fabs((loss_ratio-0))> 0.0001)
 				someLoss=1;
 		}
-		while(someLoss==0||(loss_ratio*100)>test->loss_threshold_percent);
+		while(someLoss==0||(loss_ratio*100)<test->loss_threshold_percent);
 		close(clntSock);
         printf("end of server program");
     }

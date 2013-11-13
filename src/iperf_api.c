@@ -6,6 +6,19 @@
 static const int MAXPENDING =5;
 #define BUFSIZE (128*1024)
 
+void printThroughput(double throughput){
+	if(throughput >=1000.0L && throughput <1000000.0L){
+		throughput = throughput/ 1000.0L;
+		printf("Achieved throughput is %lf kbps\n",throughput);
+	}else if(throughput >= 1000000.0L && throughput <1000000000.0L){
+		throughput = throughput/ 1000000.0L;
+		printf("Achieved throughput is %lf Mbps\n",throughput);
+	}else if(throughput >= 1000000000.0L){
+		throughput = throughput/ 1000000000.0L;
+		printf("Achieved throughput is %lf Gbps\n",throughput);
+	}
+}
+
 void usage(){
 	printf("IITH iperf options:\n");
 	printf("iperf [OPTIONS] \n");
@@ -119,7 +132,7 @@ void client_tcp(struct iperf_test * test){
 	unsigned int totalSent =0;
 	struct timeval start,stop;
 	uint64_t diffTime=0.0L;
-	for(int i=0;i<800;i++){
+	for(int i=0;i<5000;i++){
 		gettimeofday(&start,NULL);
 		ssize_t sentLen = send(sockfd,echoString,echoStringLen,0);
 		gettimeofday(&stop,NULL);
@@ -147,9 +160,10 @@ void client_tcp(struct iperf_test * test){
 		printf("Stopping test client side\n");
 	}
 	gettimeofday(&stop,NULL);
-	printf("diffTime is %llu\n",diffTime);
+	//printf("diffTime is %llu\n",diffTime);
 	double throughput = (totalSent/diffTime)*8000000;
-	printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
+	//printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
+	printThroughput(throughput);
 #ifdef __linux
 	fclose(of);
 #endif
@@ -239,7 +253,8 @@ void server_tcp(struct iperf_test * test){
 				exit(-1);
 			}else if(recvLen==0){
 				double throughput = (totalRecv/diffTime)*8000000;
-				printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
+				//printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
+				printThroughput(throughput);
 				printf("Iperf stop testing\n");
 				close(clntSock);
 				break;
@@ -247,7 +262,8 @@ void server_tcp(struct iperf_test * test){
 				int *p=(int*)buffer;
 				if((*p)==IPERF_TEST_STOP){
 					double throughput = (totalRecv/diffTime)*8000000;
-					printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
+					//printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
+					printThroughput(throughput);
 					printf("Iperf test stop received\nStopping Test!!\n");
 					break;
 				}

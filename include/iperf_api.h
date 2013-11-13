@@ -35,4 +35,5 @@ void client_udp(struct iperf_test *);
 void server_udp_auto(struct iperf_test *);
 void client_udp_auto(struct iperf_test *);
 void destroy(struct iperf_test *test);
+void printThroughput(double throughput);
 #endif

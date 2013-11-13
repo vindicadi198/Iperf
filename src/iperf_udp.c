@@ -96,11 +96,7 @@ void client_udp(struct iperf_test *test){
 	char *servIP=test->server_ip;
     
 	in_port_t servPort=test->server_port;
-   /*	int sock_tcp = connect_server(test);
-	if(sock_tcp==-1){
-		perror("could not connect to server\n");
-		exit(-1);
-	}*/
+   
 	int sockfd=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
 	if(sockfd <0){
 		perror("socket() failed");
@@ -193,9 +189,10 @@ void client_udp(struct iperf_test *test){
 	gettimeofday(&global_stop,NULL);
 	diffTime = ((global_stop.tv_sec-global_start.tv_sec)*1000000)+(global_stop.tv_usec-global_start.tv_usec);
     
-	printf("diffTime is %lf\n",diffTime);
+	//printf("diffTime is %lf\n",diffTime);
 	double throughput = (totalSent/diffTime)*8000000;
-	printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
+	//printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
+	printThroughput(throughput);
     close(sockfd);
 
 }
