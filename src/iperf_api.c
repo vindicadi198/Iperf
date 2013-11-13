@@ -1,6 +1,10 @@
+
 #include "iperf_api.h"
 #include<time.h>
 #ifdef __linux
+
+
+#include<pthread.h>
 #include<linux/tcp.h>
 #endif
 static const int MAXPENDING =5;
@@ -23,6 +27,7 @@ void output_tcpinfo(FILE *of,int sock){
 	struct tcp_info tcpInfo;
 	unsigned int len=-1;
 	getsockopt(sock,SOL_SOCKET, TCP_INFO, &tcpInfo, &len);
+//	printf("%u\n",tcpInfo.tcpi_rtt);
 	fprintf(of,"%d %u %u %u %u %u %u %u %u %u %u %u %u\n",
 			tcpInfo.tcpi_state,
 			tcpInfo.tcpi_last_data_sent,
@@ -40,7 +45,86 @@ void output_tcpinfo(FILE *of,int sock){
 		   );
 	fflush(of);
 }
+
+void rtt_graphinfo(FILE *rgof,int sock,struct timeval start){
+	if(rgof==NULL)
+		return;
+//	struct tcp_info tcpInfo;
+//	unsigned int len=-1;
+//	getsockopt(sock,SOL_SOCKET, TCP_INFO, &tcpInfo, &len);
+//	printf("%u\n",tcpInfo.tcpi_rtt);
+	fprintf(rgof,"%llu\n",((start.tv_sec*1000000)+start.tv_usec));
+	fflush(rgof);
+}
 #endif
+	
+/************************************************************************/	
+struct targ{
+	int bufsize;
+	int clntSock;
+	struct sockaddr_in clntAddr;
+};	
+	
+void *c_thread(void *arg)
+{	
+	struct targ t = *(struct targ*)arg;
+	int bufsize = t.bufsize;
+	int clntSock = t.clntSock;
+	struct sockaddr_in clntAddr = t.clntAddr;
+
+		int recv_handshake;
+       	if(recv(clntSock,&recv_handshake,sizeof(int),0)!=sizeof(int)){
+			perror("Error receiving handshake from client");
+			close(clntSock);
+			return NULL;
+		}else if(recv_handshake!=IPERF_TEST_START){
+			perror("Wrong Handshake message\n");
+			close(clntSock);
+			return NULL;
+		}
+        char clntIpAddr[INET_ADDRSTRLEN];
+        if(inet_ntop(AF_INET,&clntAddr.sin_addr.s_addr,clntIpAddr,sizeof(clntIpAddr))!=NULL){
+            printf("Handling client %s %d\n",clntIpAddr,ntohs(clntAddr.sin_port));
+        }else{
+            puts("unable to get client IP address");
+        }
+		struct timeval start,stop;
+		uint64_t diffTime = 0L,totalRecv=0;
+		while(1){
+			//Receive data
+			char buffer[bufsize];
+			memset(buffer,0,bufsize);
+			gettimeofday(&start,NULL);
+			ssize_t recvLen=recv(clntSock,buffer,bufsize-1,0);
+			gettimeofday(&stop,NULL);
+			diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
+			totalRecv +=recvLen;
+			if(recvLen<0){
+				perror("recv() failed");
+				exit(-1);
+			}else if(recvLen==0){
+				double throughput = (totalRecv/diffTime)*8000000;
+				printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
+				printf("Iperf stop testing\n");
+				close(clntSock);
+				break;
+			}else if(recvLen==sizeof(int)){
+				int *p=(int*)buffer;
+				if((*p)==IPERF_TEST_STOP){
+					double throughput = (totalRecv/diffTime)*8000000;
+					printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
+					printf("Iperf test stop received\nStopping Test!!\n");
+					break;
+				}
+			}
+		}
+		close(clntSock);	
+	
+	return NULL;
+}	
+/************************************************************************/	
+	
+	
 	
 void client_tcp(struct iperf_test * test){
 	char *servIP=test->server_ip;
@@ -93,6 +177,12 @@ void client_tcp(struct iperf_test * test){
 	}
 	fprintf(of,"State LastDataSent LastDataRecv SNDCWND SNDSTHRESH RCVSTHRESH RTT RTTVAR UNACK SACKED LOST RETRANS FACKS\n");
 	output_tcpinfo(of,sockfd);
+	
+	FILE *rgof = fopen("rttgraph.txt","w");
+	if(rgof==NULL){
+		perror("Unable to open rttgraph.txt file");
+		exit(-1);
+	}
 #endif
 
 	bufsize = -1;
@@ -125,6 +215,7 @@ void client_tcp(struct iperf_test * test){
 		gettimeofday(&stop,NULL);
 #ifdef __linux
 		output_tcpinfo(of,sockfd);
+		rtt_graphinfo(rgof,sockfd,start);
 #endif
 		diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
 		if(sentLen<0){
@@ -146,6 +237,9 @@ void client_tcp(struct iperf_test * test){
 	}else{
 		printf("Stopping test client side\n");
 	}
+	
+
+	
 	gettimeofday(&stop,NULL);
 	printf("diffTime is %llu\n",diffTime);
 	double throughput = (totalSent/diffTime)*8000000;
@@ -158,6 +252,12 @@ void client_tcp(struct iperf_test * test){
 }
 
 void server_tcp(struct iperf_test * test){
+
+/*************************************************************************/
+		int c_no =0;
+		pthread_t tid[1000];
+/****************************************************************************/
+		
     in_port_t servPort = test->server_port; //local port 
     
     int servSock;
@@ -207,6 +307,17 @@ void server_tcp(struct iperf_test * test){
             perror("accept() failed");
             exit(-1);
         }
+/*******************************************************************************/        
+    struct targ t;
+    t.bufsize = bufsize;
+    t.clntSock = clntSock;
+    t.clntAddr = clntAddr; 
+    
+    pthread_create(&tid[c_no],NULL,c_thread,(void*)&t);
+    c_no++;
+/******************************************************************************/        
+
+/*
 		int recv_handshake;
        	if(recv(clntSock,&recv_handshake,sizeof(int),0)!=sizeof(int)){
 			perror("Error receiving handshake from client");
@@ -254,6 +365,9 @@ void server_tcp(struct iperf_test * test){
 			}
 		}
 		close(clntSock);
+		
+		*/
+		
         printf("end of server program");
     }
     printf("End of program");
