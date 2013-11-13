@@ -254,7 +254,7 @@ void server_tcp(struct iperf_test * test){
 				perror("recv() failed");
 				exit(-1);
 			}else if(recvLen==0){
-				double throughput = (totalRecv/diffTime)*8000000;
+				double throughput = ((double)totalRecv/diffTime)*8000000;
 				//printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
 				printThroughput(throughput);
 				printf("Iperf stop testing\n");
