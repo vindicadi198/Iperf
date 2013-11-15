@@ -127,6 +127,9 @@ void client_tcp(struct iperf_test * test){
          perror("Unable to open rttgraph.txt file");
          exit(-1);
     }
+    struct timeval temp;
+    gettimeofday(&temp,NULL);
+    rtt_graphinfo(rgof,sockfd,temp);
 #endif
 
 	bufsize = -1;
@@ -188,6 +191,7 @@ void client_tcp(struct iperf_test * test){
 	gettimeofday(&stop,NULL);
 #ifdef __linux
 	output_tcpinfo(of,sockfd);
+	rtt_graphinfo(rgof,sockfd,stop);
 #endif
 	//printf("diffTime is %llu\n",diffTime);
 	double throughput = ((double)totalSent/diffTime)*8000000;
