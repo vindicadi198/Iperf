@@ -1,7 +1,9 @@
 #include "iperf_api.h"
 #include<time.h>
 #ifdef __linux
+#define __USE_MISC
 #include<linux/tcp.h>
+//#include <netinet/tcp.h>
 #endif
 static const int MAXPENDING =5;
 #define BUFSIZE (128*1024)
@@ -37,8 +39,8 @@ void output_tcpinfo(FILE *of,int sock){
 		return;
 	struct tcp_info tcpInfo;
 	unsigned int len=-1;
-	getsockopt(sock,SOL_SOCKET, TCP_INFO, &tcpInfo, &len);
-	fprintf(of,"%d %u %u %u %u %u %u %u %u %u %u %u %u\n",
+	getsockopt(sock,IPPROTO_TCP, TCP_INFO, &tcpInfo, &len);
+	fprintf(of,"%5d %12u %12u %10u %10u %10u %6u %6u %10u %6u %6u %7u %u %u %u\n",
 			tcpInfo.tcpi_state,
 			tcpInfo.tcpi_last_data_sent,
 			tcpInfo.tcpi_last_data_recv,
@@ -50,8 +52,10 @@ void output_tcpinfo(FILE *of,int sock){
 			tcpInfo.tcpi_unacked,
 			tcpInfo.tcpi_sacked,
 			tcpInfo.tcpi_lost,
-			tcpInfo.tcpi_retrans,
-			tcpInfo.tcpi_fackets
+			tcpInfo.tcpi_total_retrans,
+			tcpInfo.tcpi_fackets,
+			tcpInfo.tcpi_last_ack_sent,
+			tcpInfo.tcpi_last_ack_recv
 		   );
 	fflush(of);
 }
@@ -106,7 +110,7 @@ void client_tcp(struct iperf_test * test){
 		perror("Unable to open log file");
 		exit(-1);
 	}
-	fprintf(of,"State LastDataSent LastDataRecv SNDCWND SNDSTHRESH RCVSTHRESH RTT RTTVAR UNACK SACKED LOST RETRANS FACKS\n");
+	fprintf(of,"State LastDataSent LastDataRecv SNDCWND    SNDSTHRESH RCVSTHRESH RTT    RTTVAR UNACK      SACKED LOST   RETRANS FACKS\n");
 	output_tcpinfo(of,sockfd);
 #endif
 
@@ -134,12 +138,14 @@ void client_tcp(struct iperf_test * test){
 	unsigned int totalSent =0;
 	struct timeval start,stop;
 	uint64_t diffTime=0.0L;
-	for(int i=0;i<5000;i++){
+	setsockopt(sockfd, IPPROTO_TCP, TCP_QUICKACK, (int[]){1}, sizeof(int));
+	for(int i=0;i<800;i++){
 		gettimeofday(&start,NULL);
 		ssize_t sentLen = send(sockfd,echoString,echoStringLen,0);
 		gettimeofday(&stop,NULL);
 #ifdef __linux
 		output_tcpinfo(of,sockfd);
+		setsockopt(sockfd, IPPROTO_TCP, TCP_QUICKACK, (int[]){1}, sizeof(int));
 #endif
 		diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
 		if(sentLen<0){
@@ -150,9 +156,10 @@ void client_tcp(struct iperf_test * test){
 			//exit(-1);
 		}
 		totalSent+=sentLen;
-		//if(diffTime>=(10000000))
-		//	break;
+		if(diffTime>=(10000000))
+			break;
 	}
+	sleep(5);
 	send_handshake = IPERF_TEST_STOP;
 	if(send(sockfd,&send_handshake,sizeof(int),0)!=sizeof(int)){
 		perror("Error starting test handshake");
@@ -162,9 +169,12 @@ void client_tcp(struct iperf_test * test){
 		printf("Stopping test client side\n");
 	}
 	gettimeofday(&stop,NULL);
+#ifdef __linux
+	output_tcpinfo(of,sockfd);
+#endif
 	//printf("diffTime is %llu\n",diffTime);
 	double throughput = ((double)totalSent/diffTime)*8000000;
-	//printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
+	printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
 	printThroughput(throughput);
 #ifdef __linux
 	fclose(of);
