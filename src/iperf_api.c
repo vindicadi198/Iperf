@@ -59,6 +59,16 @@ void output_tcpinfo(FILE *of,int sock){
 		   );
 	fflush(of);
 }
+void rtt_graphinfo(FILE *rgof,int sock,struct timeval start){
+        if(rgof==NULL)
+                return;
+//        struct tcp_info tcpInfo;
+//        unsigned int len=-1;
+//        getsockopt(sock,SOL_SOCKET, TCP_INFO, &tcpInfo, &len);
+//        printf("%u\n",tcpInfo.tcpi_rtt);
+        fprintf(rgof,"%llu\n",((start.tv_sec*1000000)+start.tv_usec));
+        fflush(rgof);
+}
 #endif
 	
 void client_tcp(struct iperf_test * test){
@@ -112,6 +122,11 @@ void client_tcp(struct iperf_test * test){
 	}
 	fprintf(of,"State LastDataSent LastDataRecv SNDCWND    SNDSTHRESH RCVSTHRESH RTT    RTTVAR UNACK      SACKED LOST   RETRANS FACKS\n");
 	output_tcpinfo(of,sockfd);
+	FILE *rgof = fopen("rttgraph.txt","w");
+    if(rgof==NULL){
+         perror("Unable to open rttgraph.txt file");
+         exit(-1);
+    }
 #endif
 
 	bufsize = -1;
@@ -147,6 +162,7 @@ void client_tcp(struct iperf_test * test){
 		gettimeofday(&stop,NULL);
 #ifdef __linux
 		output_tcpinfo(of,sockfd);
+		rtt_graphinfo(rgof,sockfd,start);
 		setsockopt(sockfd, IPPROTO_TCP, TCP_QUICKACK, (int[]){1}, sizeof(int));
 #endif
 		diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
@@ -179,6 +195,7 @@ void client_tcp(struct iperf_test * test){
 	printThroughput(throughput);
 #ifdef __linux
 	fclose(of);
+	fclose(rgof);
 #endif
     close(sockfd);
 	free(echoString);
