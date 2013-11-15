@@ -45,7 +45,7 @@ void output_tcpinfo(FILE *of,int sock){
 }
 #endif
 	
-void client_tcp(struct iperf_test * test){
+void client_tcp_v6(struct iperf_test * test){
 	char *servIP=test->server_ip;
 	char *echoString;
 	char serverPortStr[10];
@@ -176,7 +176,7 @@ void client_tcp(struct iperf_test * test){
 	free(echoString);
 }
 
-void server_tcp(struct iperf_test * test){
+void server_tcp_v6(struct iperf_test * test){
     in_port_t servPort = test->server_port; //local port 
     
     int servSock;

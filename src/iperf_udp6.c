@@ -7,7 +7,7 @@ struct packet{
 	char data[128*1024];
 }__attribute__((packed));
 
-static int connect_server(struct iperf_test *test){
+static int connect_server_v6(struct iperf_test *test){
  	char *servIP=test->server_ip;
 	char serverPortStr[10];
     
@@ -66,7 +66,7 @@ static int connect_server(struct iperf_test *test){
     }
 	return sockfd;
 }
-static int start_tcp_server(struct iperf_test *test){
+static int start_tcp_server_v6(struct iperf_test *test){
     in_port_t servPort = test->server_port; //local port 
     
     int servSock;
@@ -109,7 +109,7 @@ static int start_tcp_server(struct iperf_test *test){
 	return servSock;
 }
 	
-void client_udp(struct iperf_test *test){
+void client_udp_v6(struct iperf_test *test){
 	
 	char *servIP=test->server_ip;
     
@@ -227,7 +227,7 @@ void client_udp(struct iperf_test *test){
 
 }
 
-void server_udp(struct iperf_test *test){
+void server_udp_v6(struct iperf_test *test){
 	in_port_t servPort = test->server_port; //local port 
     
     int servSock;
