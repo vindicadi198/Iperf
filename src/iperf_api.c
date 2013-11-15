@@ -138,7 +138,9 @@ void client_tcp(struct iperf_test * test){
 	unsigned int totalSent =0;
 	struct timeval start,stop;
 	uint64_t diffTime=0.0L;
+#ifdef __linux
 	setsockopt(sockfd, IPPROTO_TCP, TCP_QUICKACK, (int[]){1}, sizeof(int));
+#endif
 	for(int i=0;i<800;i++){
 		gettimeofday(&start,NULL);
 		ssize_t sentLen = send(sockfd,echoString,echoStringLen,0);
