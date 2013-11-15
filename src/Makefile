@@ -8,7 +8,7 @@ TARGET = iperf
 .PHONY: all clean test rmobj 
 
 
-all: $(TARGET)  
+all: $(TARGET) rmobj 
 
 $(TARGET): $(IND_OBJ)
 	$(CC) $(LDFLAGS) *.o -o $@ -lpthread
