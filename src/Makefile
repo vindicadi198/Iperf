@@ -11,10 +11,10 @@ TARGET = iperf
 all: $(TARGET)  
 
 $(TARGET): $(IND_OBJ)
-	$(CC) $(LDFLAGS) *.o -o $@
+	$(CC) $(LDFLAGS) *.o -o $@ -lpthread
 
 iperf_api.o: iperf_api.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $< 
 
 iperf_defaults.o: iperf_defaults.c
 	$(CC) $(CFLAGS) -o $@ $<
