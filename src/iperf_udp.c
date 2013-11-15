@@ -1,10 +1,23 @@
 #include"iperf_api.h"
+#include<pthread.h>
 struct packet{
 	uint32_t seq_no;
 	char data[128*1024];
 }__attribute__((packed));
 
+<<<<<<< HEAD
 static int connect_server(struct iperf_test *test){
+=======
+typedef struct argmnt 
+{
+	int a;
+	int b;
+	int c;
+	struct sockaddr_in cl_add;
+} argu_thread ;
+
+int connect_server(struct iperf_test *test){
+>>>>>>> multiclient
     
 	char *servIP=test->server_ip;
 	in_port_t servPort=test->server_port;
@@ -197,6 +210,44 @@ void client_udp(struct iperf_test *test){
 
 }
 
+void* connection_handler1(void* arg){
+	argu_thread input = *((argu_thread*)(arg));
+	int bufsize = input.a;
+	int clntSock = input.b;
+	int servSock = input.c;
+	struct sockaddr_in clientSock = input.cl_add;
+	unsigned int len=0;
+	unsigned int number_of_packets=0,number_of_received=0;
+	int tcp_recvLen=recv(clntSock,&number_of_packets,sizeof(int),0);
+	if(tcp_recvLen<0){
+		fprintf(stderr,"recv() error\n");
+		exit(1);
+	}
+	printf("Number of packets expected = %d\n",number_of_packets);
+	close(clntSock);
+	while(1){
+		bufsize=1024;
+		char buffer[bufsize];
+		memset(buffer,0,bufsize);
+		ssize_t recvLen=recvfrom(servSock,buffer,bufsize-1,0,(struct sockaddr*)&clientSock,&len);
+		if(recvLen<0){
+			perror("recv() failed");
+			exit(-1);
+		}
+		number_of_received++;
+		struct packet *recv_packet=(struct packet*)buffer;
+		printf("Got packet sequence number %d\n",recv_packet->seq_no);
+		if(recv_packet->seq_no==(number_of_packets-1)){
+			printf("Received last sequence number\n");
+			double recv_ratio = ((float)number_of_received)/ number_of_packets;
+			printf("Loss ratio is %f\n",(float)(1.0-recv_ratio));
+			break;
+		}
+	}
+	printf("end of server program");
+		return NULL;
+}
+
 void server_udp(struct iperf_test *test){
 	in_port_t servPort = test->server_port; //local port 
     
@@ -242,7 +293,7 @@ void server_udp(struct iperf_test *test){
     
     for(;;){
 		struct sockaddr_in clientSock;
-		unsigned int len=0;
+		//unsigned int len=0;
 		memset(&clientSock,0,sizeof(struct sockaddr_in));
 		struct sockaddr_in clntAddr;
 		socklen_t clntAddrLen = sizeof(clntAddr);
@@ -252,7 +303,14 @@ void server_udp(struct iperf_test *test){
 			exit(-1);
 		
 		}
-		unsigned int number_of_packets=0,number_of_received=0;
+		pthread_t sniffer_thread;
+		argu_thread p_arg;
+		p_arg.a=bufsize;
+		p_arg.b=clntSock;
+		p_arg.c=servSock;
+		p_arg.cl_add= clientSock;
+		pthread_create( &sniffer_thread , NULL ,  connection_handler1 , (void*) &p_arg);
+		/* unsigned int number_of_packets=0,number_of_received=0;
 		int tcp_recvLen=recv(clntSock,&number_of_packets,sizeof(int),0);
 		if(tcp_recvLen<0){
 			fprintf(stderr,"recv() error\n");
@@ -279,7 +337,7 @@ void server_udp(struct iperf_test *test){
 				break;
 			}
 		}
-        printf("end of server program");
+        printf("end of server program"); */
     }
     printf("End of program");
 	close(tcp_serv_sock);
