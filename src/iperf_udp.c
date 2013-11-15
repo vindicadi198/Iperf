@@ -5,9 +5,6 @@ struct packet{
 	char data[128*1024];
 }__attribute__((packed));
 
-<<<<<<< HEAD
-static int connect_server(struct iperf_test *test){
-=======
 typedef struct argmnt 
 {
 	int a;
@@ -17,7 +14,6 @@ typedef struct argmnt
 } argu_thread ;
 
 int connect_server(struct iperf_test *test){
->>>>>>> multiclient
     
 	char *servIP=test->server_ip;
 	in_port_t servPort=test->server_port;
