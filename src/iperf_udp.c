@@ -1,9 +1,9 @@
 #include"iperf_api.h"
-struct packet{
+struct packet{ // udp packet to send to server
 	uint32_t seq_no;
 	char data[128*1024];
 }__attribute__((packed));
-
+/* function to connect to the server using TCP */
 static int connect_server(struct iperf_test *test){
     
 	char *servIP=test->server_ip;
@@ -48,6 +48,7 @@ static int connect_server(struct iperf_test *test){
     }
 	return sockfd;
 }
+/* function to start the TCP server socket */
 static int start_tcp_server(struct iperf_test *test){
 	in_port_t servPort = test->server_port; //local port 
     
@@ -90,7 +91,7 @@ static int start_tcp_server(struct iperf_test *test){
     }
 	return servSock;
 }
-	
+/* Client function which does UDP testing at given bitrate */	
 void client_udp(struct iperf_test *test){
 	
 	char *servIP=test->server_ip;
@@ -106,7 +107,7 @@ void client_udp(struct iperf_test *test){
 	rv=setsockopt(sockfd,SOL_SOCKET,SO_SNDBUF,&bufsize,sizeof(bufsize));
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
-	rv=setsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,&bufsize,sizeof(bufsize));
+	rv=setsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,&bufsize,sizeof(bufsize)); //set socket buffer size
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
 
@@ -116,7 +117,7 @@ void client_udp(struct iperf_test *test){
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
 
-	printf("buffer size is %dKB\n",bufsize>>10);
+	printf("buffer size is %dKB\n",bufsize>>10); //check the set buffer size
 
     //set the server address
     struct sockaddr_in servAddr;
@@ -138,8 +139,8 @@ void client_udp(struct iperf_test *test){
 	struct packet send_packet;
 	send_packet.seq_no=0;
 	srand(time(NULL));
-	int packet_len=1024;
-	for(int i=0;i<packet_len-4;i++){
+	int packet_len=1024; 
+	for(int i=0;i<packet_len-4;i++){ //generate the random data in the packet
 		send_packet.data[i]=rand()%256;
 	}
 		
@@ -151,12 +152,12 @@ void client_udp(struct iperf_test *test){
 	struct timeval global_start,global_stop,start,stop;
 	double diffTime=0.0L;
 
-	int tcp_sock=connect_server(test);
+	int tcp_sock=connect_server(test); // connect to server using TCP
 	if(tcp_sock==-1){
 		fprintf(stderr,"Unable to connect to server\n");
 		exit(1);
 	}
-	err=send(tcp_sock,&no_sends,sizeof(int),0);
+	err=send(tcp_sock,&no_sends,sizeof(int),0); // send the number of packets the server should receive
 	if(err<0)
 		perror("send() failed\n");
 	else if(err!=sizeof(int))
@@ -165,7 +166,7 @@ void client_udp(struct iperf_test *test){
 	gettimeofday(&global_start,NULL);
 	for(int i=0;i<no_sends;i++){
 		gettimeofday(&start,NULL);
-		ssize_t sentLen = sendto(sockfd,&send_packet,packet_len,0,(struct sockaddr *)&servAddr,sizeof(struct sockaddr));
+		ssize_t sentLen = sendto(sockfd,&send_packet,packet_len,0,(struct sockaddr *)&servAddr,sizeof(struct sockaddr)); //start sending
 		gettimeofday(&stop,NULL);
 		diffTime = (stop.tv_usec-start.tv_usec);
 		//printf("difftime is %lf i is %d sentlen %ld\n",diffTime,i,sentLen);
@@ -177,7 +178,7 @@ void client_udp(struct iperf_test *test){
 		totalSent+=sentLen;
 		uint64_t wait_time = (delay*1000000L);
 		gettimeofday(&start,NULL);
-		while(1){
+		while(1){ //delay loop to maintain bitrate
 			gettimeofday(&stop,NULL);
 			uint64_t diff = ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
 			if(diff>wait_time)
@@ -190,13 +191,13 @@ void client_udp(struct iperf_test *test){
 	diffTime = ((global_stop.tv_sec-global_start.tv_sec)*1000000)+(global_stop.tv_usec-global_start.tv_usec);
     
 	//printf("diffTime is %lf\n",diffTime);
-	double throughput = ((double)totalSent/diffTime)*8000000;
+	double throughput = ((double)totalSent/diffTime)*8000000; //calculate throughput
 	//printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
 	printThroughput(throughput);
     close(sockfd);
 
 }
-
+/* Server function for UDP testing at given bitrate */
 void server_udp(struct iperf_test *test){
 	in_port_t servPort = test->server_port; //local port 
     
@@ -209,7 +210,7 @@ void server_udp(struct iperf_test *test){
 	rv=setsockopt(servSock,SOL_SOCKET,SO_SNDBUF,&bufsize,sizeof(bufsize));
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
-	rv=setsockopt(servSock,SOL_SOCKET,SO_RCVBUF,&bufsize,sizeof(bufsize));
+	rv=setsockopt(servSock,SOL_SOCKET,SO_RCVBUF,&bufsize,sizeof(bufsize)); //set socket buffer size
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
 
@@ -219,7 +220,7 @@ void server_udp(struct iperf_test *test){
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
 
-	printf("buffer size is %dKB\n",bufsize>>10);
+	printf("buffer size is %dKB\n",bufsize>>10); //check the set buffer size
 
 
     struct sockaddr_in servAddr;
@@ -233,7 +234,7 @@ void server_udp(struct iperf_test *test){
         perror("bind() failed");
         exit(-1);
     }
-	int tcp_serv_sock=start_tcp_server(test);
+	int tcp_serv_sock=start_tcp_server(test); //start the TCP server
 	if(tcp_serv_sock==-1){
 		fprintf(stderr,"Unable to open tcp socket\n");
 		fprintf(stderr,"%s\n",strerror(errno));
@@ -246,14 +247,14 @@ void server_udp(struct iperf_test *test){
 		memset(&clientSock,0,sizeof(struct sockaddr_in));
 		struct sockaddr_in clntAddr;
 		socklen_t clntAddrLen = sizeof(clntAddr);
-		int clntSock = accept(tcp_serv_sock,(struct sockaddr *)&clntAddr,&clntAddrLen);
+		int clntSock = accept(tcp_serv_sock,(struct sockaddr *)&clntAddr,&clntAddrLen); //accept TCP connection from server
 		if(clntSock<0){
 			perror("accept() failed");
 			exit(-1);
 		
 		}
 		unsigned int number_of_packets=0,number_of_received=0;
-		int tcp_recvLen=recv(clntSock,&number_of_packets,sizeof(int),0);
+		int tcp_recvLen=recv(clntSock,&number_of_packets,sizeof(int),0); //get number of packets expected
 		if(tcp_recvLen<0){
 			fprintf(stderr,"recv() error\n");
 			exit(1);
@@ -264,7 +265,7 @@ void server_udp(struct iperf_test *test){
 			bufsize=1024;
 			char buffer[bufsize];
 			memset(buffer,0,bufsize);
-			ssize_t recvLen=recvfrom(servSock,buffer,bufsize-1,0,(struct sockaddr*)&clientSock,&len);
+			ssize_t recvLen=recvfrom(servSock,buffer,bufsize-1,0,(struct sockaddr*)&clientSock,&len); //receive random data
 			if(recvLen<0){
 				perror("recv() failed");
 				exit(-1);
@@ -272,7 +273,7 @@ void server_udp(struct iperf_test *test){
 			number_of_received++;
 			struct packet *recv_packet=(struct packet*)buffer;
 			printf("Got packet sequence number %d\n",recv_packet->seq_no);
-			if(recv_packet->seq_no==(number_of_packets-1)){
+			if(recv_packet->seq_no==(number_of_packets-1)){ //if last packet received then done
 				printf("Received last sequence number\n");
 				double recv_ratio = ((float)number_of_received)/ number_of_packets;
 				printf("Loss ratio is %f\n",(float)(1.0-recv_ratio));

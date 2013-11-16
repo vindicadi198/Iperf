@@ -4,7 +4,7 @@ struct packet{
 	uint32_t seq_no;
 	char data[128*1024];
 }__attribute__((packed));
-
+/* function to connect to server */
 static int connect_server(struct iperf_test *test){
     
 	char *servIP=test->server_ip;
@@ -49,6 +49,7 @@ static int connect_server(struct iperf_test *test){
     }
 	return sockfd;
 }
+/* function to start TCP server */
 static int start_tcp_server(struct iperf_test *test){
 	in_port_t servPort = test->server_port; //local port 
     
@@ -91,7 +92,7 @@ static int start_tcp_server(struct iperf_test *test){
     }
 	return servSock;
 }
-	
+/* function to do UDP auto testing */
 void client_udp_auto(struct iperf_test *test){
 	
 	char *servIP=test->server_ip;
@@ -106,7 +107,7 @@ void client_udp_auto(struct iperf_test *test){
 	rv=setsockopt(sockfd,SOL_SOCKET,SO_SNDBUF,&bufsize,sizeof(bufsize));
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
-	rv=setsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,&bufsize,sizeof(bufsize));
+	rv=setsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,&bufsize,sizeof(bufsize)); //set buffer size
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
 
@@ -116,7 +117,7 @@ void client_udp_auto(struct iperf_test *test){
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
 
-	printf("buffer size is %dKB\n",bufsize>>10);
+	printf("buffer size is %dKB\n",bufsize>>10); //check the set buffer size
 
     //set the server address
     struct sockaddr_in servAddr;
@@ -170,7 +171,7 @@ void client_udp_auto(struct iperf_test *test){
 			perror("send() failed to send full info\n");
 		//close(tcp_sock);
 		gettimeofday(&global_start,NULL);
-		for(unsigned int i=0;i<no_sends;i++){
+		for(unsigned int i=0;i<no_sends;i++){ // sending loop at given rate
 			gettimeofday(&start,NULL);
 			ssize_t sentLen = sendto(sockfd,&send_packet,packet_len,0,(struct sockaddr *)&servAddr,sizeof(struct sockaddr));
 			gettimeofday(&stop,NULL);
@@ -194,7 +195,7 @@ void client_udp_auto(struct iperf_test *test){
 		}
 		gettimeofday(&global_stop,NULL);
 		diffTime = ((global_stop.tv_sec-global_start.tv_sec)*1000000)+(global_stop.tv_usec-global_start.tv_usec);
-		if((recv(tcp_sock,&loss_rate,sizeof(double),0))!=sizeof(double)){
+		if((recv(tcp_sock,&loss_rate,sizeof(double),0))!=sizeof(double)){ // get loss rate at server
 			perror("recv() error in receiving loss rate");
 			exit(1);
 		}
@@ -204,7 +205,7 @@ void client_udp_auto(struct iperf_test *test){
 		if(loss_rate>=prev_loss_rate&&someLoss&&(loss_rate*100)>test->loss_threshold_percent)
 			rate = rate/4;
 		else
-			rate=rate*2;
+			rate=rate*2; //increase rate if loss is small
 		prev_loss_rate=loss_rate;
 		double throughput = (totalSent/diffTime)*8000000;
 		if(throughput<1000000000&&someLoss==0)
@@ -212,10 +213,10 @@ void client_udp_auto(struct iperf_test *test){
 		printThroughput(throughput);
 		printf("Loss ratio is %lf\n",loss_rate);
 		fprintf(udp_log,"%lf\n",throughput);
-		if(throughput<prev_throughput)
+		if(throughput<prev_throughput) //stop test when throughput starts decreasing
 			break;
 		prev_throughput=throughput;
-	}while((loss_rate*100)<test->loss_threshold_percent|| someLoss==0);
+	}while((loss_rate*100)<test->loss_threshold_percent|| someLoss==0); //loop when loss is smaller than threshold
 	//printf("diffTime is %lf\n",diffTime);
 	double throughput = ((double)totalSent/diffTime)*8000000;
 	//printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
@@ -226,7 +227,7 @@ void client_udp_auto(struct iperf_test *test){
 	close(tcp_sock);
 
 }
-
+/* server function for UDP auto testing */
 void server_udp_auto(struct iperf_test *test){
 	in_port_t servPort = test->server_port; //local port 
     
@@ -239,7 +240,7 @@ void server_udp_auto(struct iperf_test *test){
 	rv=setsockopt(servSock,SOL_SOCKET,SO_SNDBUF,&bufsize,sizeof(bufsize));
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
-	rv=setsockopt(servSock,SOL_SOCKET,SO_RCVBUF,&bufsize,sizeof(bufsize));
+	rv=setsockopt(servSock,SOL_SOCKET,SO_RCVBUF,&bufsize,sizeof(bufsize)); //set socket buffer size
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
 
@@ -249,7 +250,7 @@ void server_udp_auto(struct iperf_test *test){
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
 
-	printf("buffer size is %dKB\n",bufsize>>10);
+	printf("buffer size is %dKB\n",bufsize>>10); //get set buffer size
 
 
     struct sockaddr_in servAddr;
@@ -263,7 +264,7 @@ void server_udp_auto(struct iperf_test *test){
         perror("bind() failed");
         exit(-1);
     }
-	int tcp_serv_sock=start_tcp_server(test);
+	int tcp_serv_sock=start_tcp_server(test); //start TCP server
 	if(tcp_serv_sock==-1){
 		fprintf(stderr,"Unable to open tcp socket\n");
 		fprintf(stderr,"%s\n",strerror(errno));
@@ -285,12 +286,12 @@ void server_udp_auto(struct iperf_test *test){
 		char someLoss =0;
 		do{
 			unsigned int number_of_packets=0,number_of_received=0;
-			int tcp_recvLen=recv(clntSock,&number_of_packets,sizeof(int),0);
+			int tcp_recvLen=recv(clntSock,&number_of_packets,sizeof(int),0);  //get number of packets expected for this probe
 			if(tcp_recvLen<0){
 				fprintf(stderr,"recv() error\n");
 				exit(1);
 			}
-			printf("Number of packets expected = %u\n",number_of_packets);
+			printf("Number of packets expected = %u\n",number_of_packets); 
 			while(1){
 				bufsize=1024;
 				char buffer[bufsize];
@@ -307,7 +308,7 @@ void server_udp_auto(struct iperf_test *test){
 					printf("Received last sequence number\n");
 					loss_ratio = 1.0-((double)number_of_received)/ number_of_packets;
 					printf("Loss ratio is %lf\n",loss_ratio);
-					if((send(clntSock,&loss_ratio,sizeof(double),0))!=sizeof(double)){
+					if((send(clntSock,&loss_ratio,sizeof(double),0))!=sizeof(double)){ //send loss rate to client
 						perror("send() loss rate failed");
 					}
 					break;

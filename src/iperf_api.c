@@ -7,7 +7,7 @@
 #endif
 static const int MAXPENDING =5;
 #define BUFSIZE (128*1024)
-
+/* function to print the throughput in human readable format */
 void printThroughput(double throughput){
 	if(throughput >=1000.0L && throughput <1000000.0L){
 		throughput = throughput/ 1000.0L;
@@ -22,7 +22,7 @@ void printThroughput(double throughput){
 		printf("Achieved throughput is %lf bps\n",throughput);
 	}
 }
-
+/* print valid command line options in case of wrong inputs */
 void usage(){
 	printf("IITH iperf options:\n");
 	printf("iperf [OPTIONS] \n");
@@ -34,7 +34,7 @@ void usage(){
 	printf("\t-u : Run iperf in UDP mode (Default bit rate:1 Mbps)\n");
 }
 #ifdef __linux
-void output_tcpinfo(FILE *of,int sock){
+void output_tcpinfo(FILE *of,int sock){ /* linux only function to print TCP socket information */
 	if(of==NULL)
 		return;
 	struct tcp_info tcpInfo;
@@ -59,6 +59,7 @@ void output_tcpinfo(FILE *of,int sock){
 		   );
 	fflush(of);
 }
+/* output the time stamps at which the function is called to File for graphing purposes */
 void rtt_graphinfo(FILE *rgof,int sock,struct timeval start){
         if(rgof==NULL)
                 return;
@@ -70,7 +71,7 @@ void rtt_graphinfo(FILE *rgof,int sock,struct timeval start){
         fflush(rgof);
 }
 #endif
-	
+/* TCP client code which sends data to server and calculates throughput */
 void client_tcp(struct iperf_test * test){
 	char *servIP=test->server_ip;
 	char *echoString;
@@ -92,7 +93,7 @@ void client_tcp(struct iperf_test * test){
 
 	bufsize = 0;
 	unsigned int len=sizeof(bufsize);
-	rv=getsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,(void*)&bufsize,&len);
+	rv=getsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,(void*)&bufsize,&len); /* set socket buffer size */
 	if(rv<0)
 		printf("setsockopt error %s\n",strerror(errno));
 
@@ -107,8 +108,8 @@ void client_tcp(struct iperf_test * test){
         perror("inet_pton() failed");
         exit(-1);
     }
-    servAddr.sin_port=htons(servPort); //h-host,n-network order s-short
-    
+    servAddr.sin_port=htons(servPort); 
+
     //connect to server
     if(connect(sockfd,(struct sockaddr *)&servAddr,sizeof(servAddr))){
         perror("connect failed");
@@ -121,7 +122,7 @@ void client_tcp(struct iperf_test * test){
 		exit(-1);
 	}
 	fprintf(of,"State LastDataSent LastDataRecv SNDCWND    SNDSTHRESH RCVSTHRESH RTT    RTTVAR UNACK      SACKED LOST   RETRANS FACKS\n");
-	output_tcpinfo(of,sockfd);
+	output_tcpinfo(of,sockfd); //print TCP socket information just after connect 
 	FILE *rgof = fopen("rttgraph.txt","w");
     if(rgof==NULL){
          perror("Unable to open rttgraph.txt file");
@@ -133,12 +134,12 @@ void client_tcp(struct iperf_test * test){
 #endif
 
 	bufsize = -1;
-	rv=getsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,(void*)&bufsize,&len);
+	rv=getsockopt(sockfd,SOL_SOCKET,SO_RCVBUF,(void*)&bufsize,&len); //verify buffer size
 		if(rv<0)
 			printf("setsockopt error %s\n",strerror(errno));
 
 	printf("buffer size is %dKB\n",bufsize>>10);
-	int send_handshake = IPERF_TEST_START;
+	int send_handshake = IPERF_TEST_START; //Send test start handshake
 	if(send(sockfd,&send_handshake,sizeof(int),0)!=sizeof(int)){
 		perror("Error starting test handshake");
 		close(sockfd);
@@ -146,7 +147,7 @@ void client_tcp(struct iperf_test * test){
 	}
 	
 	srand(time(NULL));
-	int echoStringLen=test->socket_bufsize;
+	int echoStringLen=test->socket_bufsize; // random data that is sent to server
 	echoString = (char*)malloc(echoStringLen*sizeof(char));
 	for(int i=0;i<echoStringLen;i++){
 		echoString[i]=rand()%256;
@@ -157,18 +158,18 @@ void client_tcp(struct iperf_test * test){
 	struct timeval start,stop;
 	uint64_t diffTime=0.0L;
 #ifdef __linux
-	setsockopt(sockfd, IPPROTO_TCP, TCP_QUICKACK, (int[]){1}, sizeof(int));
+	setsockopt(sockfd, IPPROTO_TCP, TCP_QUICKACK, (int[]){1}, sizeof(int)); //Enable quick ack mode in linux
 #endif
 	for(int i=0;i<800;i++){
 		gettimeofday(&start,NULL);
-		ssize_t sentLen = send(sockfd,echoString,echoStringLen,0);
+		ssize_t sentLen = send(sockfd,echoString,echoStringLen,0); //send random data to server
 		gettimeofday(&stop,NULL);
 #ifdef __linux
 		output_tcpinfo(of,sockfd);
 		rtt_graphinfo(rgof,sockfd,start);
 		setsockopt(sockfd, IPPROTO_TCP, TCP_QUICKACK, (int[]){1}, sizeof(int));
 #endif
-		diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
+		diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec); //calculate time required to send
 		if(sentLen<0){
 			perror("send() failed");
 			exit(-1);
@@ -176,12 +177,12 @@ void client_tcp(struct iperf_test * test){
 			perror("sent unexpected number of bytes");
 			//exit(-1);
 		}
-		totalSent+=sentLen;
-		if(diffTime>=(10000000))
+		totalSent+=sentLen; //total bytes sent 
+		if(diffTime>=(10000000)) //stop test after 10 seconds
 			break;
 	}
 	send_handshake = IPERF_TEST_STOP;
-	if(send(sockfd,&send_handshake,sizeof(int),0)!=sizeof(int)){
+	if(send(sockfd,&send_handshake,sizeof(int),0)!=sizeof(int)){ //send final handshake
 		perror("Error starting test handshake");
 		close(sockfd);
 		exit(1);
@@ -189,15 +190,15 @@ void client_tcp(struct iperf_test * test){
 		printf("Stopping test client side\n");
 	}
 	gettimeofday(&stop,NULL);
-	sleep(5);
+	sleep(5); //wait for unack packets
 #ifdef __linux
 	output_tcpinfo(of,sockfd);
 	rtt_graphinfo(rgof,sockfd,stop);
 #endif
 	//printf("diffTime is %llu\n",diffTime);
-	double throughput = ((double)totalSent/diffTime)*8000000;
+	double throughput = ((double)totalSent/diffTime)*8000000; //calculate throughput
 	printf("The acheived throughput is %lfbit/sec %u\n",throughput,totalSent);
-	printThroughput(throughput);
+	printThroughput(throughput); 
 #ifdef __linux
 	fclose(of);
 	fclose(rgof);
@@ -279,15 +280,15 @@ void server_tcp(struct iperf_test * test){
 			char buffer[bufsize];
 			memset(buffer,0,bufsize);
 			gettimeofday(&start,NULL);
-			ssize_t recvLen=recv(clntSock,buffer,bufsize-1,0);
+			ssize_t recvLen=recv(clntSock,buffer,bufsize-1,0); //receive random data
 			gettimeofday(&stop,NULL);
-			diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec);
+			diffTime += ((stop.tv_sec-start.tv_sec)*1000000)+(stop.tv_usec-start.tv_usec); //calculate the time required to receive
 			totalRecv +=recvLen;
 			if(recvLen<0){
 				perror("recv() failed");
 				exit(-1);
 			}else if(recvLen==0){
-				double throughput = ((double)totalRecv/diffTime)*8000000;
+				double throughput = ((double)totalRecv/diffTime)*8000000; //calculate throughput
 				//printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
 				printThroughput(throughput);
 				printf("Iperf stop testing\n");
@@ -296,7 +297,7 @@ void server_tcp(struct iperf_test * test){
 			}else if(recvLen==sizeof(int)){
 				int *p=(int*)buffer;
 				if((*p)==IPERF_TEST_STOP){
-					double throughput = ((double)totalRecv/diffTime)*8000000;
+					double throughput = ((double)totalRecv/diffTime)*8000000; //calculate throughput
 					//printf("The acheived throughput is %lfbit/sec %llu\n",throughput,totalRecv);
 					printThroughput(throughput);
 					printf("Iperf test stop received\nStopping Test!!\n");
@@ -304,12 +305,12 @@ void server_tcp(struct iperf_test * test){
 				}
 			}
 		}
-		close(clntSock);
+		close(clntSock); //done with this client 
         printf("end of server program");
     }
     printf("End of program");
 	close(servSock);
 }
 void destroy(struct iperf_test * test){
-	free(test->server_ip);
+	free(test->server_ip); //free up heap memory
 }
