@@ -189,6 +189,7 @@ void client_tcp(struct iperf_test * test){
 		printf("Stopping test client side\n");
 	}
 	gettimeofday(&stop,NULL);
+	sleep(5);
 #ifdef __linux
 	output_tcpinfo(of,sockfd);
 	rtt_graphinfo(rgof,sockfd,stop);
