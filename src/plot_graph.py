@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 def throughput():
 	y=[]
 	print 'hello'
-	readfile = open('throughput.txt','r')
+	readfile = open('udp','r')
 	
 	for line in readfile:
 		line=line.strip()
